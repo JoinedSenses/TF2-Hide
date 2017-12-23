@@ -40,13 +40,7 @@ new String:g_saHidableParticles[][] = {
 	"critical_rocket_red",
 	"critical_rocket_blue",
 	"coin_large_blue",
-	"superrare_beams1",
-	"rocketbackblast",
-	"backblast",
-	"flamethrower",
-	"rockettrail",
-	"sparks",
-	"explosion",
+	"superrare_beams1"
 };
 new String:g_sSoundHook[][] = 
 {
