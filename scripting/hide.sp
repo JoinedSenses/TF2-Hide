@@ -49,7 +49,7 @@ new String:g_sSoundHook[][] =
 	"pain",
 	"fall_damage",
 	"grenade_jump",
-	"fleshbreak",
+	"fleshbreak"
 };
 public OnPluginStart()
 {
