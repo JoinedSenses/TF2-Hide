@@ -210,17 +210,21 @@ public OnEntityDestroyed(entity)
 public OnHidableSpawned(entity)
 {
 	setFlags(entity);
-	decl String:sClassName[32];
-	GetEntityClassname(entity, sClassName, sizeof(sClassName));
-	new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if(StrContains(sClassName, "obj_") != 0 && (owner < 1 || owner > MaxClients))
+	//decl String:sClassName[32];
+	//GetEntityClassname(entity, sClassName, sizeof(sClassName));
+	//new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	//new builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+	//PrintToChatAll("[Spawned] Owner: %i, Builder: %i, Entity: %i", owner, builder, entity);
+	//if((StrContains(sClassName, "obj_") != 0) && (owner < 1 || owner > MaxClients) && (builder < 1 || builder > MaxClients))
 	//if(owner < 1 || owner > MaxClients)
-		return;
+	//	return;
 	
-	new String:sEntity[10];
-	IntToString(entity, sEntity, sizeof(sEntity));
+	//new String:sEntity[10];
+	//new String:sEntity2[10];
+	//IntToString(entity, sEntity, sizeof(sEntity));
 	
-	SetTrieValue(g_Entities, sEntity, owner);
+	//SetTrieValue(g_Entities, sEntity, owner);
+	//SetTrieValue(g_Entities, sEntity2, builder);
 	SDKHook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
 }
 
@@ -237,15 +241,12 @@ public Action:OnHidableTouched(iEntity, iOther) {
 public Action:Hook_Entity_SetTransmit(entity, client)
 {
 	setFlags(entity);
-	new String:sEntity[10];
-	IntToString(entity, sEntity, sizeof(sEntity));
+    int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+    int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
 
-	new owner;
-	if(!GetTrieValue(g_Entities, sEntity, owner))
-		return Plugin_Continue;
-		
+	PrintToChatAll("[Transmit] Owner: %i, Builder: %i, Client: %i, Entity: %i", owner, builder, client, entity);
 
-	if(owner == client || !g_bHide[client] || g_Team[client] == 1)
+	if(owner == client || builder == client || !g_bHide[client] || g_Team[client] == 1)
 		return Plugin_Continue;
 
 	else{
