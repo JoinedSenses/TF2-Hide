@@ -207,7 +207,7 @@ public Action:Hook_Entity_SetTransmit(entity, client){
 	else if(StrContains(sClassName, "rocket") != -1){
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	}
-	else if(StrContains(sClassName, "pipe") != -1){
+	else if(StrContains(sClassName, "projectile_pipe") != -1){
 		thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
 	//PrintToChatAll("Builder: %i, Owner: %i, Thrower: %i, Client: %i, Entity: %i", builder, owner, thrower, client, entity);
