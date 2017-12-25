@@ -3,11 +3,10 @@
 #include <sdkhooks>
 #include <tf2_stocks>
 
-#define PLUGIN_VERSION  "0.1.7"
+#define PLUGIN_VERSION  "0.1.8"
 
 
-public Plugin:myinfo = 
-{
+public Plugin:myinfo = {
 	name = "Hide Players",
 	author = "[GNC] Matt",
 	description = "Adds commands to show/hide other players.",
@@ -40,10 +39,15 @@ new String:g_saHidableParticles[][] = {
 	"critical_rocket_red",
 	"critical_rocket_blue",
 	"coin_large_blue",
-	"superrare_beams1"
+	"superrare_beams1",
+	"rocketbackblast",
+	"backblast",
+	"flamethrower",
+	"rockettrail",
+	"sparks",
+	"explosion"
 };
-new String:g_sSoundHook[][] = 
-{
+new String:g_sSoundHook[][] = {
 	"regenerate",
 	"ammo_pickup",
 	"pain",
@@ -51,8 +55,7 @@ new String:g_sSoundHook[][] =
 	"grenade_jump",
 	"fleshbreak"
 };
-public OnPluginStart()
-{
+public OnPluginStart(){
 	CreateConVar("sm_hide_version", PLUGIN_VERSION, "Hide Players Version.", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	
 	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
@@ -71,14 +74,11 @@ public cvarExplosions(Handle:cvar, const String:oldVal[], const String:newVal[])
 {
 	g_bExplosions = bool:StringToInt(newVal);
 }
-CheckHooks()
-{
+CheckHooks(){
 	new bool:bShouldHook = false;
 	
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (g_bHide[i])
-		{
+	for (new i = 1; i <= MaxClients; i++){
+		if (g_bHide[i]){
 			bShouldHook = true;
 			break;
 		}
@@ -87,27 +87,19 @@ CheckHooks()
 	// Fake (un)hook because toggling actual hooks will cause server instability.
 	g_bHooked = bShouldHook;
 }
-public Action:SoundHook(clients[64], &numClients, String:sample[PLATFORM_MAX_PATH], &entity, &channel, &Float:volume, &level, &pitch, &flags)
-{
-
-	for (new i = 0; i<=sizeof(g_sSoundHook)-1; i++)
-	{
-		if (StrContains(sample, g_sSoundHook[i], false) != -1)
-		{
+public Action:SoundHook(clients[64], &numClients, String:sample[PLATFORM_MAX_PATH], &entity, &channel, &Float:volume, &level, &pitch, &flags){
+	for (new i = 0; i<=sizeof(g_sSoundHook)-1; i++){
+		if (StrContains(sample, g_sSoundHook[i], false) != -1){
 			//PrintToChatAll("STOPPING SOUND: %s - %i", sample, entity);
 			return Plugin_Handled;
 		}
 	}
-	if (g_bHooked)
-	{
+	if (g_bHooked){
 		decl i, j;
-		for (i = 0; i < numClients; i++)
-		{
-			if (g_bHide[clients[i]])
-			{
+		for (i = 0; i < numClients; i++){
+			if (g_bHide[clients[i]]){
 				// Remove the client from the array.
-				for (j = i; j < numClients-1; j++)
-				{
+				for (j = i; j < numClients-1; j++){
 					clients[j] = clients[j+1];
 				}
 				numClients--;
@@ -120,23 +112,19 @@ public Action:SoundHook(clients[64], &numClients, String:sample[PLATFORM_MAX_PAT
 	return Plugin_Continue;
 }
 
-public Action:TEHookTest(const String:te_name[], const Players[], numClients, Float:delay)
-{
+public Action:TEHookTest(const String:te_name[], const Players[], numClients, Float:delay){
 	if(g_bExplosions)
 		return Plugin_Stop;
 	return Plugin_Continue;
 }
-public Action:cmdHide(client, args)
-{
+public Action:cmdHide(client, args){
 	g_bHide[client] = !g_bHide[client];
 	CheckHooks();
-	if(g_bHide[client])
-	{
+	if(g_bHide[client]){
 		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now hidden.");
 		g_bHideEnabled = true;
 	}
-	else
-	{
+	else{
 		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now visible.");
 		
 		g_bHideEnabled = false;
@@ -148,16 +136,14 @@ public Action:cmdHide(client, args)
 	return Plugin_Handled;
 }
 
-public Action:eventChangeTeam(Handle:event, const String:name[], bool:dontBroadcast)
-{
+public Action:eventChangeTeam(Handle:event, const String:name[], bool:dontBroadcast){
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	new team = GetEventInt(event, "team");
 	
 	g_Team[client] = team;
 }
 
-public OnEntityCreated(entity, const String:classname[])
-{
+public OnEntityCreated(entity, const String:classname[]){
 	if (StrContains(classname, "obj_") == 0) {
 		SDKHook(entity, SDKHook_StartTouch, OnHidableTouched);
 		SDKHook(entity, SDKHook_Touch, OnHidableTouched);
@@ -165,7 +151,7 @@ public OnEntityCreated(entity, const String:classname[])
 	for(new i = 0; i < sizeof(g_saHidable); i++){
 		if((StrContains(classname, g_saHidable[i], false) != -1) && IsValidEntity(entity)){
 			setFlags(entity);
-			SDKHook(entity, SDKHook_Spawn, OnHidableSpawned);
+			SDKHook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
 		}
 	}
 	if (StrEqual(classname, "info_particle_system")){
@@ -173,22 +159,17 @@ public OnEntityCreated(entity, const String:classname[])
 		SDKHook(entity, SDKHook_SetTransmit, Hook_Particle_SetTransmit);
 	}
 }
-void setFlags(int edict)
-{
-	if (GetEdictFlags(edict) & FL_EDICT_ALWAYS)
-	{
+void setFlags(int edict){
+	if (GetEdictFlags(edict) & FL_EDICT_ALWAYS){
 		SetEdictFlags(edict, (GetEdictFlags(edict) ^ FL_EDICT_ALWAYS));
 	}
 } 
-public Action:Hook_Particle_SetTransmit(entity, client)
-{
+public Action:Hook_Particle_SetTransmit(entity, client){
 	setFlags(entity);
 	decl String:effectname[32];	
 	GetEntPropString(entity, Prop_Data, "m_iszEffectName", effectname, sizeof(effectname));
-	for(new i = 0; i < sizeof(g_saHidableParticles); i++)
-	{
-		if (!StrContains(effectname, g_saHidableParticles[i]))
-		{
+	for(new i = 0; i < sizeof(g_saHidableParticles); i++){
+		if (StrContains(effectname, g_saHidableParticles[i]) == -1){
 			return Plugin_Continue;
 		}
 	}
@@ -199,35 +180,13 @@ public Action:Hook_Particle_SetTransmit(entity, client)
 		return Plugin_Handled;
 	}	
 }
-public OnEntityDestroyed(entity)
-{
+public OnEntityDestroyed(entity){
 	new String:sEntity[10];
 	IntToString(entity, sEntity, sizeof(sEntity));
 	
 	SDKUnhook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
 	RemoveFromTrie(g_Entities, sEntity);
 }
-public OnHidableSpawned(entity)
-{
-	setFlags(entity);
-	//decl String:sClassName[32];
-	//GetEntityClassname(entity, sClassName, sizeof(sClassName));
-	//new owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	//new builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-	//PrintToChatAll("[Spawned] Owner: %i, Builder: %i, Entity: %i", owner, builder, entity);
-	//if((StrContains(sClassName, "obj_") != 0) && (owner < 1 || owner > MaxClients) && (builder < 1 || builder > MaxClients))
-	//if(owner < 1 || owner > MaxClients)
-	//	return;
-	
-	//new String:sEntity[10];
-	//new String:sEntity2[10];
-	//IntToString(entity, sEntity, sizeof(sEntity));
-	
-	//SetTrieValue(g_Entities, sEntity, owner);
-	//SetTrieValue(g_Entities, sEntity2, builder);
-	SDKHook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
-}
-
 public Action:OnHidableTouched(iEntity, iOther) {
 	if (0 < iOther && iOther <= MaxClients) {
 		if (g_bHide[iOther]) {
@@ -237,28 +196,37 @@ public Action:OnHidableTouched(iEntity, iOther) {
 	
 	return Plugin_Continue;
 }
-
-public Action:Hook_Entity_SetTransmit(entity, client)
-{
+public Action:Hook_Entity_SetTransmit(entity, client){
 	setFlags(entity);
-    int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-    int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+	
+	decl String:sClassName[32];
+	GetEntityClassname(entity, sClassName, sizeof(sClassName));
+	
+	new builder;
+	new owner;
+	new thrower;
 
-	PrintToChatAll("[Transmit] Owner: %i, Builder: %i, Client: %i, Entity: %i", owner, builder, client, entity);
-
-	if(owner == client || builder == client || !g_bHide[client] || g_Team[client] == 1)
+	if(StrContains(sClassName, "obj_") != -1){
+		builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+	}
+	else if(StrContains(sClassName, "rocket") != -1){
+		owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	}
+	else if(StrContains(sClassName, "pipe") != -1){
+		thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	}
+	//PrintToChatAll("Builder: %i, Owner: %i, Thrower: %i, Client: %i, Entity: %i", builder, owner, thrower, client, entity);
+	if(owner == client || builder == client || thrower == client || !g_bHide[client] || g_Team[client] == 1){
 		return Plugin_Continue;
-
+	}
 	else{
 		return Plugin_Handled;
 	}
 }
 
 
-public Action:cmdReload(client, args)
-{
-	for(new i = 1; i <= MaxClients; i++)
-	{
+public Action:cmdReload(client, args){
+	for(new i = 1; i <= MaxClients; i++){
 		g_bHide[i] = false;
 		
 		if (IsClientInGame(i)) {
@@ -270,18 +238,15 @@ public Action:cmdReload(client, args)
 	return Plugin_Handled;
 }
 
-public OnClientPutInServer(client)
-{
+public OnClientPutInServer(client){
 	g_bHide[client] = false;
 	SDKHook(client, SDKHook_SetTransmit, Hook_Client_SetTransmit);
 }
-public OnClientDisconnect_Post(client)
-{
+public OnClientDisconnect_Post(client){
     g_bHide[client] = false;
     CheckHooks();
 }
-public Action:Hook_Client_SetTransmit(entity, client)
-{
+public Action:Hook_Client_SetTransmit(entity, client){
 	if(entity == client || !g_bHide[client] || g_Team[client] == 1)
 		return Plugin_Continue;
 	else {
