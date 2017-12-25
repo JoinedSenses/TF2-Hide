@@ -8,7 +8,7 @@
 
 public Plugin:myinfo = {
 	name = "Hide Players",
-	author = "[GNC] Matt",
+	author = "[GNC] Matt, patched by JoinedSenses",
 	description = "Adds commands to show/hide other players.",
 	version = PLUGIN_VERSION,
 	url = "http://www.mattsfiles.com"
@@ -40,12 +40,7 @@ new String:g_saHidableParticles[][] = {
 	"critical_rocket_blue",
 	"coin_large_blue",
 	"superrare_beams1",
-	"rocketbackblast",
-	"backblast",
-	"flamethrower",
-	"rockettrail",
-	"sparks",
-	"explosion"
+	"tf_glow"
 };
 new String:g_sSoundHook[][] = {
 	"regenerate",
