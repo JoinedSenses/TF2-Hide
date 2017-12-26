@@ -197,21 +197,24 @@ public Action:Hook_Entity_SetTransmit(entity, client){
 	decl String:sClassName[32];
 	GetEntityClassname(entity, sClassName, sizeof(sClassName));
 	
-	new builder;
-	new owner;
-	new thrower;
+	new builder = -1;
+	new owner = -1;
+	new thrower = -1;
 
 	if(StrContains(sClassName, "obj_") != -1){
+		//PrintToChatAll("Builder on %s", sClassName);
 		builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
 	}
-	else if(StrContains(sClassName, "rocket") != -1){
+	else if(StrContains(sClassName, "rocket") != -1 || StrContains(sClassName, "weapon") != -1 || StrContains(sClassName, "wearable") != -1 ){
+		//PrintToChatAll("Owner on %s", sClassName);
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	}
-	else if(StrContains(sClassName, "projectile_pipe") != -1){
+	else if(StrContains(sClassName, "tf_projectile_pipe") != -1){
+		//PrintToChatAll("Thrower on %s", sClassName);
 		thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
 	//PrintToChatAll("Builder: %i, Owner: %i, Thrower: %i, Client: %i, Entity: %i", builder, owner, thrower, client, entity);
-	if(owner == client || builder == client || thrower == client || !g_bHide[client] || g_Team[client] == 1){
+	if(thrower == client || owner == client || builder == client || !g_bHide[client] || g_Team[client] == 1){
 		return Plugin_Continue;
 	}
 	else{
