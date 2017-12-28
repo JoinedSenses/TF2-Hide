@@ -40,6 +40,7 @@ new String:g_saHidableParticles[][] = {
 	"critical_rocket_blue",
 	"coin_large_blue",
 	"superrare_beams1",
+	"smoke",
 	"tf_glow"
 };
 new String:g_sSoundHook[][] = {
@@ -214,7 +215,7 @@ public Action:Hook_Entity_SetTransmit(entity, client){
 		thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
 	//PrintToChatAll("Builder: %i, Owner: %i, Thrower: %i, Client: %i, Entity: %i", builder, owner, thrower, client, entity);
-	if(thrower == client || owner == client || builder == client || !g_bHide[client] || g_Team[client] == 1){
+	if(builder == client || owner == client || thrower == client || !g_bHide[client] || g_Team[client] == 1){
 		return Plugin_Continue;
 	}
 	else{
