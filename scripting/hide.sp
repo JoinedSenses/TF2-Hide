@@ -39,7 +39,6 @@ char g_saHidableParticles[][] = {
 	"critical_rocket_blue",
 	"coin_large_blue",
 	"superrare_beams1",
-	"smoke",
 	"tf_glow"
 };
 char g_sSoundHook[][] = {
@@ -67,6 +66,7 @@ public void OnPluginStart(){
 	
 	AddNormalSoundHook(SoundHook);
 	AddTempEntHook("TFExplosion", TEHookTest);
+	AddTempEntHook("TFBlood", TEHookTest);
 }
 
 public void cvarExplosions(ConVar cvar, const char[] oldVal, const char[] newVal){
