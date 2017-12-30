@@ -211,7 +211,7 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	else if (StrContains(sClassName, "vgui") != -1 || StrContains(sClassName, "sentryrocket") != -1){
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hPlayerOwner");
 	}
-	PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
+	//PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
 	if (owner == client || !g_bHide[client] || g_Team[client] == 1){
 		return Plugin_Continue;
 	}
