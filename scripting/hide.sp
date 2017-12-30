@@ -196,6 +196,7 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	GetEntityClassname(entity, sClassName, sizeof(sClassName));
 	
 	int owner = -1;
+	int sentry = -1;
 
 	for (int i = 0; i < sizeof(g_saOwner); i++){
 		if (StrContains(sClassName, g_saOwner[i]) != -1){
@@ -209,7 +210,8 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
 	else if (StrContains(sClassName, "vgui") != -1 || StrContains(sClassName, "sentryrocket") != -1){
-		owner = GetEntPropEnt(entity, Prop_Send, "m_hPlayerOwner");
+		sentry = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		owner = GetEntPropEnt(sentry, Prop_Send, "m_hBuilder");
 	}
 	//PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
 	if (owner == client || !g_bHide[client] || g_Team[client] == 1){
