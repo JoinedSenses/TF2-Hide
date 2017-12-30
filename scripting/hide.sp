@@ -21,8 +21,6 @@ int g_Team[MAXPLAYERS + 1];
 Handle g_hExplosions = INVALID_HANDLE;
 bool g_bExplosions = true;
 
-bool g_bHideEnabled = false;
-
 char g_saHidable[][] = {
 	"obj_sentrygun",
 	"obj_dispenser",
@@ -123,15 +121,9 @@ public Action cmdHide(int client, int args){
 	CheckHooks();
 	if (g_bHide[client]){
 		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now hidden.");
-		g_bHideEnabled = true;
 	}
 	else{
 		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now visible.");
-		
-		g_bHideEnabled = false;
-		for (int i = 1; i <= MaxClients && !g_bHideEnabled; i++) {
-			g_bHideEnabled = IsClientInGame(i) && g_bHide[i];
-		}
 	}
 
 	return Plugin_Handled;
