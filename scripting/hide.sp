@@ -52,7 +52,7 @@ char g_sSoundHook[][] = {
 char g_saOwner[][] = {
 	"weapon",
 	"wearable",
-	"rocket"
+	"projectile_rocket"
 };
 public void OnPluginStart(){
 	CreateConVar("sm_hide_version", PLUGIN_VERSION, "Hide Players Version.", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
@@ -92,11 +92,16 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 			return Plugin_Handled;
 		}
 	}
+	int builder;
+	char sClassName[32];
+	GetEntityClassname(entity, sClassName, sizeof(sClassName));
+	//PrintToChatAll("Class name of origin of %s is %s", sample, sClassName);
+	if (StrContains(sClassName, "obj_") != -1){
+		builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+	}
 	if (g_bHooked){
 		for (int i = 0; i < numClients; i++){
-			if (g_bHide[clients[i]]){
-				if (clients[i] == entity)
-					return Plugin_Continue;
+			if (g_bHide[clients[i]] && clients[i] != entity && clients[i] != builder){
 				// Remove the client from the array.
 				for (int j = i; j < numClients-1; j++){
 					clients[j] = clients[j+1];
@@ -203,10 +208,10 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	else if (StrContains(sClassName, "tf_projectile_pipe") != -1){
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
-	else if (StrContains(sClassName, "vgui") != -1){
+	else if (StrContains(sClassName, "vgui") != -1 || StrContains(sClassName, "sentryrocket") != -1){
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hPlayerOwner");
 	}
-	//PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
+	PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
 	if (owner == client || !g_bHide[client] || g_Team[client] == 1){
 		return Plugin_Continue;
 	}
