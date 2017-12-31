@@ -15,7 +15,7 @@ public Plugin myinfo = {
 	url = "http://www.mattsfiles.com"
 }
 
-bool g_bHide[MAXPLAYERS + 1], g_bHooked;
+bool g_bHide[MAXPLAYERS + 1], g_bHooked, g_bIntelPickedUp;
 int g_Team[MAXPLAYERS + 1];
 
 Handle g_hExplosions = INVALID_HANDLE;
@@ -26,9 +26,11 @@ char g_saHidable[][] = {
 	"obj_dispenser",
 	"obj_teleporter",
 	"vgui",
+	"teamflag",
 	"projectile",
 	"weapon",
-	"wearable"
+	"wearable",
+	"ammo_pack"
 };
 char g_saHidableParticles[][] = {
 	"ghost_pumpkin",
@@ -60,6 +62,7 @@ public void OnPluginStart(){
 	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
 	RegAdminCmd("sm_hide_reload", cmdReload, ADMFLAG_SLAY, "Execute if reloading plugin with players on server.");
 	HookEvent("player_team", eventChangeTeam);
+	HookEvent("teamplay_flag_event", Event_Intel, EventHookMode_Pre);
 	
 	g_hExplosions = CreateConVar("sm_hide_explosions", "1", "Enable/Disable hiding explosions.", 0);
 	HookConVarChange(g_hExplosions, cvarExplosions);
@@ -116,9 +119,22 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 	return Plugin_Continue;
 }
 
-public Action TEHookTest(const char[] te_name, const int[] Players,int numClients, float delay){
+public Action TEHookTest(const char[] te_name, const int[] Players, int numClients, float delay){
 	if (g_bExplosions)
 		return Plugin_Stop;
+	return Plugin_Continue;
+}
+public Action Event_Intel(Event event,  const char[] name, bool dontBroadcast){	
+	int iEventType = GetEventInt(event, "eventtype");
+	int client = GetEventInt(event, "player");
+	//Check event type to prevent hiding when intel is not carried.
+	if (iEventType == 1){
+		setFlags(client);
+		g_bIntelPickedUp = true;
+	}
+	else if (iEventType > 1){
+		g_bIntelPickedUp = false;
+	}
 	return Plugin_Continue;
 }
 public Action cmdHide(int client, int args){
@@ -197,7 +213,12 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	
 	int owner = -1;
 	int sentry = -1;
-
+	
+	if (StrContains(sClassName, "teamflag") != -1 && g_bHide[client]){
+		if (g_bIntelPickedUp)
+			return Plugin_Handled;
+		return Plugin_Continue;
+	}	
 	for (int i = 0; i < sizeof(g_saOwner); i++){
 		if (StrContains(sClassName, g_saOwner[i]) != -1){
 			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
@@ -243,6 +264,7 @@ public void OnClientDisconnect_Post(int client){
     CheckHooks();
 }
 public Action Hook_Client_SetTransmit(int entity, int client){
+	setFlags(entity);
 	if (entity == client || !g_bHide[client] || g_Team[client] == 1)
 		return Plugin_Continue;
 	else {
