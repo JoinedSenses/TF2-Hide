@@ -214,7 +214,7 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	GetEntityClassname(entity, sClassName, sizeof(sClassName));
 	
 	int owner = -1;
-	int sentry = -1;
+	int building = -1;
 	
 	if (StrContains(sClassName, "teamflag") != -1 && g_bHide[client]){
 		if (g_bIntelPickedUp)
@@ -233,12 +233,12 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
 	else if (StrContains(sClassName, "vgui_screen") != -1 || StrContains(sClassName, "sentryrocket") != -1){
-		sentry = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		char sSentryClassName[32];
-		GetEntityClassname(sentry, sSentryClassName, sizeof(sSentryClassName));
-		if (StrContains(sSentryClassName, "viewmodel") != -1)
-			return Plugin_Continue;
-		owner = GetEntPropEnt(sentry, Prop_Send, "m_hBuilder");
+		building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		char sBuildingClassName[32];
+		GetEntityClassname(building, sBuildingClassName, sizeof(sBuildingClassName));
+		if (StrContains(sBuildingClassName, "obj_") != -1){
+			owner = GetEntPropEnt(building, Prop_Send, "m_hBuilder");
+		}
 	}
 	//PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
 	if (owner == client || !g_bHide[client] || g_Team[client] == 1){
