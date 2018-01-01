@@ -29,10 +29,9 @@ char g_saHidable[][] = {
 	"teamflag",
 	"projectile",
 	"weapon",
-	"wearable",
-	"ammo_pack"
+	"wearable"
 };
-char g_saHidableParticles[][] = {
+char g_saParticles[][] = {
 	"ghost_pumpkin",
 	"rockettrail_fire",
 	"flaregun_energyfield_blue",
@@ -162,6 +161,9 @@ public void OnEntityCreated(int entity, const char[] classname){
 		SDKHook(entity, SDKHook_StartTouch, OnHidableTouched);
 		SDKHook(entity, SDKHook_Touch, OnHidableTouched);
 	}
+	else if (StrContains(classname, "ammo_pack") != -1){
+		AcceptEntityInput(entity, "kill");
+	}
 	for (int i = 0; i < sizeof(g_saHidable); i++){
 		if ((StrContains(classname, g_saHidable[i], false) != -1) && IsValidEntity(entity)){
 			setFlags(entity);
@@ -182,8 +184,8 @@ public Action Hook_Particle_SetTransmit(int entity, int client){
 	setFlags(entity);
 	char effectname[32];	
 	GetEntPropString(entity, Prop_Data, "m_iszEffectName", effectname, sizeof(effectname));
-	for (int i = 0; i < sizeof(g_saHidableParticles); i++){
-		if (StrContains(effectname, g_saHidableParticles[i]) == -1){
+	for (int i = 0; i < sizeof(g_saParticles); i++){
+		if (StrContains(effectname, g_saParticles[i]) == -1){
 			return Plugin_Continue;
 		}
 	}
