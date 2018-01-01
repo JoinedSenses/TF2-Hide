@@ -25,7 +25,7 @@ char g_saHidable[][] = {
 	"obj_sentrygun",
 	"obj_dispenser",
 	"obj_teleporter",
-	"vgui",
+	"vgui_screen",
 	"teamflag",
 	"projectile",
 	"weapon",
@@ -232,8 +232,12 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	else if (StrContains(sClassName, "tf_projectile_pipe") != -1){
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
-	else if (StrContains(sClassName, "vgui") != -1 || StrContains(sClassName, "sentryrocket") != -1){
+	else if (StrContains(sClassName, "vgui_screen") != -1 || StrContains(sClassName, "sentryrocket") != -1){
 		sentry = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		char sSentryClassName[32];
+		GetEntityClassname(sentry, sSentryClassName, sizeof(sSentryClassName));
+		if (StrContains(sSentryClassName, "viewmodel") != -1)
+			return Plugin_Continue;
 		owner = GetEntPropEnt(sentry, Prop_Send, "m_hBuilder");
 	}
 	//PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
