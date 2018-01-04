@@ -29,7 +29,8 @@ char g_saHidable[][] = {
 	"teamflag",
 	"projectile",
 	"weapon",
-	"wearable"
+	"wearable",
+	"tf_ammo_pack"
 };
 char g_saParticles[][] = {
 	"ghost_pumpkin",
@@ -103,7 +104,7 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 	}
 	if (g_bHooked){
 		for (int i = 0; i < numClients; i++){
-			if (g_bHide[clients[i]] && clients[i] != entity && clients[i] != builder){
+			if (g_bHide[clients[i]] && clients[i] != entity && clients[i] != builder && g_Team[clients[i]] != 1){
 				// Remove the client from the array.
 				for (int j = i; j < numClients-1; j++){
 					clients[j] = clients[j+1];
@@ -161,11 +162,8 @@ public void OnEntityCreated(int entity, const char[] classname){
 		SDKHook(entity, SDKHook_StartTouch, OnHidableTouched);
 		SDKHook(entity, SDKHook_Touch, OnHidableTouched);
 	}
-	else if (StrContains(classname, "ammo_pack") != -1){
-		AcceptEntityInput(entity, "kill");
-	}
 	for (int i = 0; i < sizeof(g_saHidable); i++){
-		if ((StrContains(classname, g_saHidable[i], false) != -1) && IsValidEntity(entity)){
+		if ((StrContains(classname, g_saHidable[i], false) != -1) && IsValidEntity(entity) && IsValidEdict(entity)){
 			setFlags(entity);
 			SDKHook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
 		}
