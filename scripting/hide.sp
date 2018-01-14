@@ -262,12 +262,9 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	else if (StrContains(sClassName, "vgui_screen") != -1 || StrContains(sClassName, "sentryrocket") != -1){
 		//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.
 		building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		char sBuildingClassName[32];
-		GetEntityClassname(building, sBuildingClassName, sizeof(sBuildingClassName));
-		//Check added to exclude spy vgui screen from disguise kit.
-		if (StrContains(sBuildingClassName, "obj_") != -1){
-			owner = GetEntPropEnt(building, Prop_Send, "m_hBuilder");
-		}
+		if (building == -1)
+			return Plugin_Continue;
+		owner = GetEntPropEnt(building, Prop_Send, "m_hBuilder");
 	}
 	//PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
 	
