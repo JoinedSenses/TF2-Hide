@@ -262,7 +262,7 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	else if (StrContains(sClassName, "vgui_screen") != -1 || StrContains(sClassName, "sentryrocket") != -1){
 		//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.
 		building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		if (0 > building > MaxClients)
+		if (building == -1)
 			return Plugin_Continue;
 		owner = GetEntPropEnt(building, Prop_Send, "m_hBuilder");
 	}
