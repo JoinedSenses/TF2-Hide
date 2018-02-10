@@ -18,5 +18,3 @@ void setFlags(int edict){
 }
 ```
 You must then modify the particle list within the hide source to prevent specific particles from behind hidden by their owners. They will hide if the parent is hidden.
-
-This plugin must work along side the included EdictFlag plugin, which sets the edict flag on a few specific entities, fixing a few issues, such as not being able to hide heavies.
