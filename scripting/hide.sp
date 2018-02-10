@@ -60,6 +60,7 @@ char g_saOwner[][] = {
 	"weapon",
 	"wearable",
 	"projectile_rocket",
+	"projectile_energy_ball",
 	"prop"
 };
 public void OnPluginStart(){
