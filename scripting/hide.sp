@@ -4,7 +4,7 @@
 #include <sdkhooks>
 #include <tf2_stocks>
 
-#define PLUGIN_VERSION  "0.2.0"
+#define PLUGIN_VERSION  "0.2.1"
 
 
 public Plugin myinfo = {
@@ -174,6 +174,14 @@ public Action eventChangeTeam(Event event, const char[] name, bool dontBroadcast
 }
 
 public void OnEntityCreated(int entity, const char[] classname){
+	int iEnt1 = -1;
+	int iEnt2 = -1;
+	while ((iEnt1 = FindEntityByClassname(iEnt1, "tf_wearable_campaign_item")) != -1)
+		setFlags(iEnt1);
+	while ((iEnt2 = FindEntityByClassname(iEnt2, "tf_weapon_spellbook")) != -1)
+		setFlags(iEnt2);
+	setFlags(entity);
+	
 	//Touch hook on Engineer buildings.
 	if (StrContains(classname, "obj_") == 0) {
 		SDKHook(entity, SDKHook_StartTouch, OnHidableTouched);
@@ -195,7 +203,7 @@ public void OnEntityCreated(int entity, const char[] classname){
 void setFlags(int edict){
 	//Function for allowing transmit hook for entities set to always transmit
 	if (GetEdictFlags(edict) & FL_EDICT_ALWAYS){
-		SetEdictFlags(edict, (GetEdictFlags(edict) ^ FL_EDICT_ALWAYS));
+		SetEdictFlags(edict, (GetEdictFlags(edict) & ~FL_EDICT_ALWAYS));
 	}
 } 
 public Action Hook_Particle_SetTransmit(int entity, int client){
