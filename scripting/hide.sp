@@ -174,12 +174,12 @@ public Action eventChangeTeam(Event event, const char[] name, bool dontBroadcast
 }
 
 public void OnEntityCreated(int entity, const char[] classname){
-	int iEnt1 = -1;
-	int iEnt2 = -1;
-	while ((iEnt1 = FindEntityByClassname(iEnt1, "tf_wearable_campaign_item")) != -1)
-		setFlags(iEnt1);
-	while ((iEnt2 = FindEntityByClassname(iEnt2, "tf_weapon_spellbook")) != -1)
-		setFlags(iEnt2);
+	//int iEnt1 = -1;
+	//int iEnt2 = -1;
+	//while ((iEnt1 = FindEntityByClassname(iEnt1, "tf_wearable_campaign_item")) != -1)
+	//	setFlags(iEnt1);
+	//while ((iEnt2 = FindEntityByClassname(iEnt2, "tf_weapon_spellbook")) != -1)
+	//	setFlags(iEnt2);
 	setFlags(entity);
 	
 	//Touch hook on Engineer buildings.
