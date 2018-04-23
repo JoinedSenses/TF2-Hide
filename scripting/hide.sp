@@ -139,6 +139,7 @@ public Action TEHookTest(const char[] te_name, const int[] Players, int numClien
 	return Plugin_Continue;
 }
 public Action Event_Intel(Event event,  const char[] name, bool dontBroadcast){	
+	event.BroadcastDisabled = true;
 	int iEventType = GetEventInt(event, "eventtype");
 	int client = GetEventInt(event, "player");
 	
@@ -174,14 +175,6 @@ public Action eventChangeTeam(Event event, const char[] name, bool dontBroadcast
 }
 
 public void OnEntityCreated(int entity, const char[] classname){
-	//int iEnt1 = -1;
-	//int iEnt2 = -1;
-	//while ((iEnt1 = FindEntityByClassname(iEnt1, "tf_wearable_campaign_item")) != -1)
-	//	setFlags(iEnt1);
-	//while ((iEnt2 = FindEntityByClassname(iEnt2, "tf_weapon_spellbook")) != -1)
-	//	setFlags(iEnt2);
-	setFlags(entity);
-	
 	//Touch hook on Engineer buildings.
 	if (StrContains(classname, "obj_") == 0) {
 		SDKHook(entity, SDKHook_StartTouch, OnHidableTouched);
@@ -272,6 +265,7 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 		char sClassName2[32];
 		//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.
 		building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		if (building < 0) return Plugin_Continue;
 		GetEntityClassname(building, sClassName2, sizeof(sClassName2));
 		if (StrContains(sClassName2, "obj_") != -1)
 			owner = GetEntPropEnt(building, Prop_Send, "m_hBuilder");
