@@ -22,7 +22,7 @@ Handle g_hExplosions = INVALID_HANDLE;
 bool g_bExplosions = true;
 
 //Entities to hide.
-char g_saHidable[][] = {
+char g_saHideable[][] = {
 	"obj_sentrygun",
 	"obj_dispenser",
 	"obj_teleporter",
@@ -177,12 +177,12 @@ public Action eventChangeTeam(Event event, const char[] name, bool dontBroadcast
 public void OnEntityCreated(int entity, const char[] classname){
 	//Touch hook on Engineer buildings.
 	if (StrContains(classname, "obj_") == 0) {
-		SDKHook(entity, SDKHook_StartTouch, OnHidableTouched);
-		SDKHook(entity, SDKHook_Touch, OnHidableTouched);
+		SDKHook(entity, SDKHook_StartTouch, OnHideableTouched);
+		SDKHook(entity, SDKHook_Touch, OnHideableTouched);
 	}
-	//Check g_saHidable list for entities to hide.
-	for (int i = 0; i < sizeof(g_saHidable); i++){
-		if ((StrContains(classname, g_saHidable[i], false) != -1) && IsValidEntity(entity) && IsValidEdict(entity)){
+	//Check g_saHideable list for entities to hide.
+	for (int i = 0; i < sizeof(g_saHideable); i++){
+		if ((StrContains(classname, g_saHideable[i], false) != -1) && IsValidEntity(entity) && IsValidEdict(entity)){
 			setFlags(entity);
 			SDKHook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
 		}
@@ -223,7 +223,7 @@ public Action Hook_Particle_SetTransmit(int entity, int client){
 public void OnEntityDestroyed(int entity){	
 	SDKUnhook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
 }
-public Action OnHidableTouched(int entity, int other) {
+public Action OnHideableTouched(int entity, int other) {
 	//If valid client and hide is toggled, prevent them from touching buildings
 	if (0 < other && other <= MaxClients) {
 		if (g_bHide[other]) {
