@@ -6,6 +6,9 @@
 
 #define PLUGIN_VERSION  "0.2.1"
 
+bool g_bHide[MAXPLAYERS + 1], g_bHooked, g_bIntelPickedUp, g_bExplosions = true;
+int g_Team[MAXPLAYERS + 1];
+ConVar g_hExplosions;
 
 public Plugin myinfo = {
 	name = "Hide Players",
@@ -14,13 +17,6 @@ public Plugin myinfo = {
 	version = PLUGIN_VERSION,
 	url = "http://www.mattsfiles.com"
 }
-
-bool g_bHide[MAXPLAYERS + 1], g_bHooked, g_bIntelPickedUp;
-int g_Team[MAXPLAYERS + 1];
-
-Handle g_hExplosions = INVALID_HANDLE;
-bool g_bExplosions = true;
-
 //Entities to hide.
 char g_saHideable[][] = {
 	"obj_sentrygun",
@@ -65,33 +61,29 @@ char g_saOwner[][] = {
 };
 public void OnPluginStart(){
 	CreateConVar("sm_hide_version", PLUGIN_VERSION, "Hide Players Version.", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
-	
-	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
-	RegAdminCmd("sm_hide_reload", cmdReload, ADMFLAG_SLAY, "Execute if reloading plugin with players on server.");
-	HookEvent("player_team", eventChangeTeam);
-	HookEvent("teamplay_flag_event", Event_Intel, EventHookMode_Pre);
-	
 	g_hExplosions = CreateConVar("sm_hide_explosions", "1", "Enable/Disable hiding explosions.", 0);
 	HookConVarChange(g_hExplosions, cvarExplosions);
 	
+	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
+	RegAdminCmd("sm_hide_reload", cmdReload, ADMFLAG_SLAY, "Execute if reloading plugin with players on server.");
+	
+	HookEvent("player_team", eventChangeTeam);
+	HookEvent("teamplay_flag_event", Event_Intel, EventHookMode_Pre);
 	AddNormalSoundHook(SoundHook);
 	AddTempEntHook("TFExplosion", TEHookTest);
 	AddTempEntHook("TFBlood", TEHookTest);
 }
-
 public void cvarExplosions(ConVar cvar, const char[] oldVal, const char[] newVal){
 	g_bExplosions = view_as<bool>(StringToInt(newVal));
 }
 void CheckHooks(){
-	bool bShouldHook = false;
-	
+	bool bShouldHook = false;	
 	for (int i = 1; i <= MaxClients; i++){
 		if (g_bHide[i]){
 			bShouldHook = true;
 			break;
 		}
 	}
-	
 	//Fake (un)hook because toggling actual hooks will cause server instability.
 	g_bHooked = bShouldHook;
 }
@@ -103,25 +95,20 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 			return Plugin_Handled; 
 		}
 	}
-
 	int builder;
-	
 	char sClassName[32];
 	GetEntityClassname(entity, sClassName, sizeof(sClassName));
-	
 	//PrintToChatAll("Class name of origin of %s is %s", sample, sClassName);
 	
 	//Get ownership of sound for sentry rockets.
-	if (StrContains(sClassName, "obj_") != -1){
+	if (StrContains(sClassName, "obj_") != -1)
 		builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-	}
 	if (g_bHooked){
 		for (int i = 0; i < numClients; i++){
 			if (g_bHide[clients[i]] && clients[i] != entity && clients[i] != builder && g_Team[clients[i]] != 1){
 				//Remove the client from the array if they have hide toggled, if they are not the creator of the sound, and if they are not in spectate.
-				for (int j = i; j < numClients-1; j++){
+				for (int j = i; j < numClients-1; j++)
 					clients[j] = clients[j+1];
-				}
 				numClients--;
 				i--;
 			}
@@ -131,7 +118,6 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 	//PrintToChatAll("ALLOWING SOUND: %s - %i", sample, entity);
 	return Plugin_Continue;
 }
-
 public Action TEHookTest(const char[] te_name, const int[] Players, int numClients, float delay){
 	//Remove explosion temp ent from game.
 	if (g_bExplosions)
@@ -148,24 +134,19 @@ public Action Event_Intel(Event event,  const char[] name, bool dontBroadcast){
 		setFlags(client);
 		g_bIntelPickedUp = true;
 	}
-	else if (iEventType > 1){
+	else if (iEventType > 1)
 		g_bIntelPickedUp = false;
-	}
 	return Plugin_Continue;
 }
 public Action cmdHide(int client, int args){
 	g_bHide[client] = !g_bHide[client];
 	CheckHooks();
-	if (g_bHide[client]){
+	if (g_bHide[client])
 		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now hidden.");
-	}
-	else{
+	else
 		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now visible.");
-	}
-
 	return Plugin_Handled;
 }
-
 public Action eventChangeTeam(Event event, const char[] name, bool dontBroadcast){
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	int team = GetEventInt(event, "team");
@@ -173,7 +154,6 @@ public Action eventChangeTeam(Event event, const char[] name, bool dontBroadcast
 	//Team change check to see if client is a spectator or not.	
 	g_Team[client] = team; 
 }
-
 public void OnEntityCreated(int entity, const char[] classname){
 	//Touch hook on Engineer buildings.
 	if (StrContains(classname, "obj_") == 0) {
@@ -195,9 +175,8 @@ public void OnEntityCreated(int entity, const char[] classname){
 }
 void setFlags(int edict){
 	//Function for allowing transmit hook for entities set to always transmit
-	if (GetEdictFlags(edict) & FL_EDICT_ALWAYS){
+	if (GetEdictFlags(edict) & FL_EDICT_ALWAYS)
 		SetEdictFlags(edict, (GetEdictFlags(edict) & ~FL_EDICT_ALWAYS));
-	}
 } 
 public Action Hook_Particle_SetTransmit(int entity, int client){
 	setFlags(entity);
@@ -209,63 +188,55 @@ public Action Hook_Particle_SetTransmit(int entity, int client){
 	//Check effect name against list of particles.
 	//If there is a match, allow that particle to continue transmission. This is to prevent owners from hiding their own particles.
 	for (int i = 0; i < sizeof(g_saParticles); i++){
-		if (StrContains(effectname, g_saParticles[i]) == -1){
+		if (StrContains(effectname, g_saParticles[i]) == -1)
 			return Plugin_Continue;
-		}
 	}
-	if (!g_bHide[client] || g_Team[client] == 1){
+	if (!g_bHide[client] || g_Team[client] == 1)
 		return Plugin_Continue;
-	} 
-	else{
-		return Plugin_Handled;
-	}	
+	return Plugin_Handled;
 }
 public void OnEntityDestroyed(int entity){	
 	SDKUnhook(entity, SDKHook_SetTransmit, Hook_Entity_SetTransmit);
 }
 public Action OnHideableTouched(int entity, int other) {
 	//If valid client and hide is toggled, prevent them from touching buildings
-	if (0 < other && other <= MaxClients) {
-		if (g_bHide[other]) {
+	if (0 < other && other <= MaxClients){
+		if (g_bHide[other]) 
 			return Plugin_Handled;
-		}
 	}
 	return Plugin_Continue;
 }
 public Action Hook_Entity_SetTransmit(int entity, int client){
 	setFlags(entity);
-	
-	char sClassName[32];
-	GetEntityClassname(entity, sClassName, sizeof(sClassName));
-	
 	int owner = -1;
 	int building = -1;
+	char sClassName[32];
 	
+	GetEntityClassname(entity, sClassName, sizeof(sClassName));
+	
+	//Hide intel when picked up and the player carrying intel.
 	if (StrContains(sClassName, "teamflag") != -1 && g_bHide[client]){
-		//Hide intel when picked up and the player carrying intel.
 		if (g_bIntelPickedUp)
 			return Plugin_Handled;
 		return Plugin_Continue;
-	}	
+	}
+	//Find owner of items within g_saOwner list.
 	for (int i = 0; i < sizeof(g_saOwner); i++){
-		if (StrContains(sClassName, g_saOwner[i]) != -1){
-			//Find owner of items within g_saOwner list.
+		if (StrContains(sClassName, g_saOwner[i]) != -1)
 			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		}
 	}
-	if (StrContains(sClassName, "obj_") != -1){
-		//Find owner of Engineer buildings.
+	//Find owner of Engineer buildings.
+	if (StrContains(sClassName, "obj_") != -1)
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-	}
-	else if (StrContains(sClassName, "tf_projectile_pipe") != -1){
-		//Find owner of pipes and stickies.
+	//Find owner of pipes and stickies
+	else if (StrContains(sClassName, "tf_projectile_pipe") != -1)
 		owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	}
+	//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.		
 	else if (StrContains(sClassName, "vgui_screen") != -1 || StrContains(sClassName, "sentryrocket") != -1){
 		char sClassName2[32];
-		//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.
 		building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		if (building < 0) return Plugin_Continue;
+		if (building < 0) 
+			return Plugin_Continue;
 		GetEntityClassname(building, sClassName2, sizeof(sClassName2));
 		if (StrContains(sClassName2, "obj_") != -1)
 			owner = GetEntPropEnt(building, Prop_Send, "m_hBuilder");
@@ -273,12 +244,9 @@ public Action Hook_Entity_SetTransmit(int entity, int client){
 	//PrintToChatAll("Class: %s, Owner: %i, Client: %i, Entity: %i", sClassName, owner, client, entity);
 	
 	//Ownership check - prevents client from hiding their own entities, hide toggle check, and spectator check.
-	if (owner == client || !g_bHide[client] || g_Team[client] == 1){
+	if (owner == client || !g_bHide[client] || g_Team[client] == 1)
 		return Plugin_Continue;
-	}
-	else{
-		return Plugin_Handled;
-	}
+	return Plugin_Handled;
 }
 public Action cmdReload(int client, int args){
 	for (int i = 1; i <= MaxClients; i++){
@@ -306,7 +274,5 @@ public Action Hook_Client_SetTransmit(int entity, int client){
 	//Transmit hook on player models.
 	if (entity == client || !g_bHide[client] || g_Team[client] == 1)
 		return Plugin_Continue;
-	else {
-		return Plugin_Handled;
-	}
+	return Plugin_Handled;
 }
