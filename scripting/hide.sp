@@ -4,7 +4,7 @@
 #include <sdkhooks>
 #include <tf2_stocks>
 
-#define PLUGIN_VERSION  "0.2.1"
+#define PLUGIN_VERSION  "0.2.2"
 
 bool g_bHide[MAXPLAYERS + 1], g_bHooked, g_bIntelPickedUp, g_bExplosions = true;
 int g_Team[MAXPLAYERS + 1];
@@ -70,8 +70,9 @@ public void OnPluginStart(){
 	HookEvent("player_team", eventChangeTeam);
 	HookEvent("teamplay_flag_event", Event_Intel, EventHookMode_Pre);
 	AddNormalSoundHook(SoundHook);
-	AddTempEntHook("TFExplosion", TEHookTest);
-	AddTempEntHook("TFBlood", TEHookTest);
+	AddTempEntHook("TFExplosion", TEHook);
+	AddTempEntHook("TFBlood", TEHook);
+	AddTempEntHook("TFParticleEffect", TEHook);
 }
 public void cvarExplosions(ConVar cvar, const char[] oldVal, const char[] newVal){
 	g_bExplosions = view_as<bool>(StringToInt(newVal));
@@ -118,10 +119,18 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 	//PrintToChatAll("ALLOWING SOUND: %s - %i", sample, entity);
 	return Plugin_Continue;
 }
-public Action TEHookTest(const char[] te_name, const int[] Players, int numClients, float delay){
-	//Remove explosion temp ent from game.
-	if (g_bExplosions)
-		return Plugin_Stop;
+public Action TEHook(const char[] te_name, const int[] Players, int numClients, float delay){
+	if (g_bExplosions){
+		//Remove explosion, blood, and cow mangler temp ents from game.
+		if (StrEqual(te_name, "TFExplosion") || StrEqual(te_name, "TFBlood" ))
+			return Plugin_Handled;
+		else if (StrContains(te_name, "ParticleEffect") != -1){
+			switch (TE_ReadNum("m_iParticleSystemIndex")) {
+				case 1138, 1147, 1153, 1154:
+					return Plugin_Handled;
+			}
+		}
+	}
 	return Plugin_Continue;
 }
 public Action Event_Intel(Event event,  const char[] name, bool dontBroadcast){	
