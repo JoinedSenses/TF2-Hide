@@ -69,7 +69,7 @@ public Plugin myinfo = {
 	author = "[GNC] Matt, patched by JoinedSenses",
 	description = "Adds commands to show/hide other players.",
 	version = PLUGIN_VERSION,
-	url = "http://www.mattsfiles.com"
+	url = "http://github.com/JoinedSenses"
 };
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int errorMax) {
