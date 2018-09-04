@@ -11,7 +11,8 @@ bool
 	  g_bHide[MAXPLAYERS + 1]
 	, g_bHooked
 	, g_bIntelPickedUp
-	, g_bExplosions = true;
+	, g_bExplosions = true
+	, g_bLateLoad;
 int
 	  g_Team[MAXPLAYERS + 1];
 ConVar
@@ -71,6 +72,11 @@ public Plugin myinfo = {
 	url = "http://www.mattsfiles.com"
 };
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int errorMax) {
+	g_bLateLoad = late;
+	return APLRes_Success;
+}
+
 public void OnPluginStart() {
 	CreateConVar("sm_hide_version", PLUGIN_VERSION, "Hide Players Version.", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	g_hExplosions = CreateConVar("sm_hide_explosions", "1", "Enable/Disable hiding explosions.", 0);
@@ -88,6 +94,15 @@ public void OnPluginStart() {
 	AddTempEntHook("TFExplosion", TEHook);
 	AddTempEntHook("TFBlood", TEHook);
 	AddTempEntHook("TFParticleEffect", TEHook);
+
+	if (g_bLateLoad) {
+		for (int i = 1; i <= MaxClients; i++) {
+			if (IsValidClient(i)) {
+				g_Team[i] = GetClientTeam(i);
+				SDKHook(i, SDKHook_SetTransmit, Hook_Client_SetTransmit);
+			}
+		}
+	}
 }
 
 public void cvarExplosions(ConVar cvar, const char[] oldVal, const char[] newVal) {
@@ -177,7 +192,7 @@ public Action Event_Intel(Event event,  const char[] name, bool dontBroadcast) {
 public Action cmdHide(int client, int args) {
 	g_bHide[client] = !g_bHide[client];
 	CheckHooks();
-	ReplyToCommand(client, "\x05[Hide]\x01 Other players are now\x03 %s\x01.", g_bHide[client] ? "hidden" : "visible");
+	PrintToChat(client, "\x05[Hide]\x01 Other players are now\x03 %s\x01.", g_bHide[client] ? "hidden" : "visible");
 	return Plugin_Handled;
 }
 
@@ -325,4 +340,8 @@ public Action Hook_Client_SetTransmit(int entity, int client) {
 		return Plugin_Continue;
 	}
 	return Plugin_Handled;
+}
+
+bool IsValidClient(int client) {
+	return (0 < client <= MaxClients && IsClientInGame(client));
 }
