@@ -1,22 +1,21 @@
 #pragma newdecls required
 #pragma semicolon 1
+
 #include <sourcemod>
 #include <sdkhooks>
 #include <tf2_stocks>
 
-#define PLUGIN_VERSION  "0.2.2"
+#define PLUGIN_VERSION  "0.2.3"
 
-bool g_bHide[MAXPLAYERS + 1], g_bHooked, g_bIntelPickedUp, g_bExplosions = true;
-int g_Team[MAXPLAYERS + 1];
-ConVar g_hExplosions;
-
-public Plugin myinfo = {
-	name = "Hide Players",
-	author = "[GNC] Matt, patched by JoinedSenses",
-	description = "Adds commands to show/hide other players.",
-	version = PLUGIN_VERSION,
-	url = "http://www.mattsfiles.com"
-}
+bool
+	  g_bHide[MAXPLAYERS + 1]
+	, g_bHooked
+	, g_bIntelPickedUp
+	, g_bExplosions = true;
+int
+	  g_Team[MAXPLAYERS + 1];
+ConVar
+	  g_hExplosions;
 
 //Entities to hide.
 char g_saHideable[][] = {
@@ -24,7 +23,7 @@ char g_saHideable[][] = {
 	"obj_dispenser",
 	"obj_teleporter",
 	"vgui_screen",
-	"prop",
+	//"prop",
 	"teamflag",
 	"projectile",
 	"weapon",
@@ -64,17 +63,28 @@ char g_saOwner[][] = {
 	"prop"
 };
 
+public Plugin myinfo = {
+	name = "Hide Players",
+	author = "[GNC] Matt, patched by JoinedSenses",
+	description = "Adds commands to show/hide other players.",
+	version = PLUGIN_VERSION,
+	url = "http://www.mattsfiles.com"
+};
+
 public void OnPluginStart() {
 	CreateConVar("sm_hide_version", PLUGIN_VERSION, "Hide Players Version.", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	g_hExplosions = CreateConVar("sm_hide_explosions", "1", "Enable/Disable hiding explosions.", 0);
-	HookConVarChange(g_hExplosions, cvarExplosions);
+
+	g_hExplosions.AddChangeHook(cvarExplosions);
 	
 	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
 	RegAdminCmd("sm_hide_reload", cmdReload, ADMFLAG_SLAY, "Execute if reloading plugin with players on server.");
 	
 	HookEvent("player_team", eventChangeTeam);
 	HookEvent("teamplay_flag_event", Event_Intel, EventHookMode_Pre);
+
 	AddNormalSoundHook(SoundHook);
+
 	AddTempEntHook("TFExplosion", TEHook);
 	AddTempEntHook("TFBlood", TEHook);
 	AddTempEntHook("TFParticleEffect", TEHook);
@@ -85,7 +95,7 @@ public void cvarExplosions(ConVar cvar, const char[] oldVal, const char[] newVal
 }
 
 void CheckHooks() {
-	bool bShouldHook = false;	
+	bool bShouldHook;	
 	for (int i = 1; i <= MaxClients; i++) {
 		if (g_bHide[i]) {
 			bShouldHook = true;
@@ -107,6 +117,7 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 	int builder;
 	char sClassName[32];
 	GetEntityClassname(entity, sClassName, sizeof(sClassName));
+
 	//PrintToChatAll("Class name of origin of %s is %s", sample, sClassName);
 	
 	//Get ownership of sound for sentry rockets.
@@ -133,7 +144,7 @@ public Action SoundHook(int clients[64], int &numClients, char sample[PLATFORM_M
 public Action TEHook(const char[] te_name, const int[] Players, int numClients, float delay) {
 	if (g_bExplosions) {
 		//Remove explosion, blood, and cow mangler temp ents from game.
-		if (StrEqual(te_name, "TFExplosion") || StrEqual(te_name, "TFBlood" )) {
+		if (StrEqual(te_name, "TFExplosion") || StrEqual(te_name, "TFBlood")) {
 			return Plugin_Handled;
 		}
 		else if (StrContains(te_name, "ParticleEffect") != -1) {
@@ -149,8 +160,8 @@ public Action TEHook(const char[] te_name, const int[] Players, int numClients, 
 
 public Action Event_Intel(Event event,  const char[] name, bool dontBroadcast) {	
 	event.BroadcastDisabled = true;
-	int iEventType = GetEventInt(event, "eventtype");
-	int client = GetEventInt(event, "player");
+	int iEventType = event.GetInt("eventtype");
+	int client = event.GetInt("player");
 	
 	//Check event type to prevent hiding when intel is not carried.
 	if (iEventType == 1) {
@@ -166,12 +177,7 @@ public Action Event_Intel(Event event,  const char[] name, bool dontBroadcast) {
 public Action cmdHide(int client, int args) {
 	g_bHide[client] = !g_bHide[client];
 	CheckHooks();
-	if (g_bHide[client]) {
-		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now hidden.");
-	}
-	else {
-		ReplyToCommand(client, "\x05[Hide]\x01 Other players are now visible.");
-	}
+	ReplyToCommand(client, "\x05[Hide]\x01 Other players are now\x03 %s\x01.", g_bHide[client] ? "hidden" : "visible");
 	return Plugin_Handled;
 }
 
@@ -236,10 +242,8 @@ public void OnEntityDestroyed(int entity) {
 
 public Action OnHideableTouched(int entity, int other) {
 	//If valid client and hide is toggled, prevent them from touching buildings
-	if (0 < other && other <= MaxClients) {
-		if (g_bHide[other])  {
-			return Plugin_Handled;
-		}
+	if (0 < other <= MaxClients && g_bHide[other]) {
+		return Plugin_Handled;
 	}
 	return Plugin_Continue;
 }
@@ -254,10 +258,7 @@ public Action Hook_Entity_SetTransmit(int entity, int client) {
 	
 	//Hide intel when picked up and the player carrying intel.
 	if (StrContains(sClassName, "teamflag") != -1 && g_bHide[client]) {
-		if (g_bIntelPickedUp) {
-			return Plugin_Handled;
-		}
-		return Plugin_Continue;
+		return g_bIntelPickedUp ? Plugin_Handled : Plugin_Continue;
 	}
 	//Find owner of items within g_saOwner list.
 	for (int i = 0; i < sizeof(g_saOwner); i++) {
