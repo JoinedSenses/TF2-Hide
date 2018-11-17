@@ -71,7 +71,6 @@ public void OnPluginStart() {
 	cvarExplosions = CreateConVar("sm_hide_explosions", "1", "Enable/Disable hiding explosions.", 0);
 	
 	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
-	RegAdminCmd("sm_hide_reload", cmdReload, ADMFLAG_SLAY, "Execute if reloading plugin with players on server.");
 	
 	HookEvent("player_team", eventChangeTeam);
 	HookEvent("teamplay_flag_event", eventIntel, EventHookMode_Pre);
@@ -156,19 +155,6 @@ public Action cmdHide(int client, int args) {
 	g_bHide[client] = !g_bHide[client];
 	CheckHooks();
 	PrintToChat(client, "\x05[Hide]\x01 Other players are now\x03 %s\x01.", g_bHide[client] ? "hidden" : "visible");
-	return Plugin_Handled;
-}
-
-public Action cmdReload(int client, int args) {
-	for (int i = 1; i <= MaxClients; i++) {
-		g_bHide[i] = false;
-		
-		if (IsClientInGame(i)) {
-			SDKUnhook(i, SDKHook_SetTransmit, hookSetTransmitClient); 
-			SDKHook(i, SDKHook_SetTransmit, hookSetTransmitClient);
-		}
-	}
-	ReplyToCommand(client, "\x05[Hide]\x01 Reloaded");
 	return Plugin_Handled;
 }
 
