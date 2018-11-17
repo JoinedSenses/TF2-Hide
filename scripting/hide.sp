@@ -98,7 +98,7 @@ public void OnClientPutInServer(int client) {
 
 public void OnClientDisconnect_Post(int client) {
     g_bHide[client] = false;
-    CheckHooks();
+    g_bHooked = checkHooks();
 }
 
 public void OnEntityCreated(int entity, const char[] classname) {
@@ -149,7 +149,7 @@ public Action eventIntel(Event event,  const char[] name, bool dontBroadcast) {
 
 public Action cmdHide(int client, int args) {
 	g_bHide[client] = !g_bHide[client];
-	CheckHooks();
+	g_bHooked = checkHooks();
 	PrintToChat(client, "\x05[Hide]\x01 Other players are now\x03 %s\x01.", g_bHide[client] ? "hidden" : "visible");
 	return Plugin_Handled;
 }
@@ -160,18 +160,19 @@ public Action hookSound(int clients[64], int& numClients, char sample[PLATFORM_M
 	//Block sounds within g_sSoundHook list.
 	for (int i = 0; i <= sizeof(g_sSoundHook)-1; i++) {
 		if (StrContains(sample, g_sSoundHook[i], false) != -1) {
-			return Plugin_Handled; 
+			return Plugin_Stop; 
 		}
 	}
-	int builder;
-	char className[32];
-	GetEntityClassname(entity, className, sizeof(className));
 	
-	//Get ownership of sound for sentry rockets.
-	if (StrContains(className, "obj_") != -1) {
-		builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-	}
 	if (g_bHooked) {
+		int builder;
+		char className[32];
+
+		GetEntityClassname(entity, className, sizeof(className));
+		//Get ownership of sound for sentry rockets.
+		if (StrContains(className, "obj_") != -1) {
+			builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+		}
 		for (int i = 0; i < numClients; i++) {
 			if (g_bHide[clients[i]] && clients[i] != entity && clients[i] != builder && g_iTeam[clients[i]] != 1) {
 				//Remove the client from the array if they have hide toggled, if they are not the creator of the sound, and if they are not in spectate.
@@ -278,16 +279,14 @@ public Action hookSetTransmitEntity(int entity, int client) {
 
 // --------------------------------- Internal Functions
 
-void CheckHooks() {
-	bool shouldHook;	
+bool checkHooks() {	
 	for (int i = 1; i <= MaxClients; i++) {
 		if (g_bHide[i]) {
-			shouldHook = true;
-			break;
+			return true;
 		}
 	}
 	//Fake (un)hook because toggling actual hooks will cause server instability.
-	g_bHooked = shouldHook;
+	return false;
 }
 
 void setFlags(int edict) {
