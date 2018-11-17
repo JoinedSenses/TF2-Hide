@@ -20,7 +20,7 @@ ConVar
 	  cvarExplosions;
 
 //Entities to hide.
-char g_saHideable[][] = {
+char g_sHideable[][] = {
 	"obj_sentrygun",
 	"obj_dispenser",
 	"obj_teleporter",
@@ -43,7 +43,7 @@ char g_sSoundHook[][] = {
 };
 
 //Entities to get m_hOwnerEntity net prop for
-char g_saOwner[][] = {
+char g_sOwner[][] = {
 	"weapon",
 	"wearable",
 	"projectile_rocket",
@@ -107,9 +107,9 @@ public void OnEntityCreated(int entity, const char[] classname) {
 		SDKHook(entity, SDKHook_StartTouch, hookTouch);
 		SDKHook(entity, SDKHook_Touch, hookTouch);
 	}
-	//Check g_saHideable list for entities to hide.
-	for (int i = 0; i < sizeof(g_saHideable); i++) {
-		if ((StrContains(classname, g_saHideable[i], false) != -1) && IsValidEntity(entity) && IsValidEdict(entity)) {
+	//Check g_sHideable list for entities to hide.
+	for (int i = 0; i < sizeof(g_sHideable); i++) {
+		if ((StrContains(classname, g_sHideable[i], false) != -1) && IsValidEntity(entity) && IsValidEdict(entity)) {
 			setFlags(entity);
 			SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitEntity);
 		}
@@ -118,10 +118,6 @@ public void OnEntityCreated(int entity, const char[] classname) {
 	if (StrEqual(classname, "info_particle_system")) {
 		SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitParticle);
 	}
-}
-
-public void OnEntityDestroyed(int entity) {	
-	SDKUnhook(entity, SDKHook_SetTransmit, hookSetTransmitEntity);
 }
 
 // ---------------------------------  Events
@@ -246,9 +242,9 @@ public Action hookSetTransmitEntity(int entity, int client) {
 	if (StrContains(className, "teamflag") != -1 && g_bHide[client]) {
 		return g_bIntelPickedUp ? Plugin_Handled : Plugin_Continue;
 	}
-	//Find owner of items within g_saOwner list.
-	for (int i = 0; i < sizeof(g_saOwner); i++) {
-		if (StrContains(className, g_saOwner[i]) != -1) {
+	//Find owner of items within g_sOwner list.
+	for (int i = 0; i < sizeof(g_sOwner); i++) {
+		if (StrContains(className, g_sOwner[i]) != -1) {
 			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 		}
 	}
