@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <tf2_stocks>
 
-#define PLUGIN_VERSION  "0.2.4"
+#define PLUGIN_VERSION  "0.2.5"
 
 // --------------------------------- Global Variables
 
@@ -47,8 +47,7 @@ char g_sOwner[][] = {
 	"weapon",
 	"wearable",
 	"projectile_rocket",
-	"projectile_energy_ball",
-	"prop"
+	"projectile_energy_ball"
 };
 
 public Plugin myinfo = {
@@ -110,7 +109,6 @@ public void OnEntityCreated(int entity, const char[] classname) {
 	//Check g_sHideable list for entities to hide.
 	for (int i = 0; i < sizeof(g_sHideable); i++) {
 		if ((StrContains(classname, g_sHideable[i], false) != -1) && IsValidEntity(entity) && IsValidEdict(entity)) {
-			setFlags(entity);
 			SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitEntity);
 		}
 	}
@@ -228,11 +226,11 @@ public Action hookSetTransmitClient(int entity, int client) {
 }
 
 public Action hookSetTransmitEntity(int entity, int client) {
+	setFlags(entity);
 	if (!g_bHide[client] || g_iTeam[client] == 1) {
 		return Plugin_Continue;
 	}
 
-	setFlags(entity);
 	int owner = -1;
 	int building = -1;
 	char className[32];
@@ -281,7 +279,7 @@ public Action hookSetTransmitEntity(int entity, int client) {
 
 bool checkHooks() {	
 	for (int i = 1; i <= MaxClients; i++) {
-		if (g_bHide[i]) {
+		if (IsValidClient(i) && g_bHide[i]) {
 			return true;
 		}
 	}
