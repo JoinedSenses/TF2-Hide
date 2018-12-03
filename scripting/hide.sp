@@ -6,6 +6,7 @@
 #include <tf2_stocks>
 
 #define PLUGIN_VERSION  "0.2.5"
+#define PLUGIN_DESCRIPTION "Adds commands to show/hide other players."
 
 // --------------------------------- Global Variables
 
@@ -53,7 +54,7 @@ char g_sOwner[][] = {
 public Plugin myinfo = {
 	name = "Hide Players",
 	author = "[GNC] Matt, patched by JoinedSenses",
-	description = "Adds commands to show/hide other players.",
+	description = PLUGIN_DESCRIPTION,
 	version = PLUGIN_VERSION,
 	url = "http://github.com/JoinedSenses"
 };
@@ -66,8 +67,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int errorMa
 }
 
 public void OnPluginStart() {
-	CreateConVar("sm_hide_version", PLUGIN_VERSION, "Hide Players Version.", FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	ConVar version;
+	version = CreateConVar("sm_hide_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	cvarExplosions = CreateConVar("sm_hide_explosions", "1", "Enable/Disable hiding explosions.", 0);
+	version.SetString(PLUGIN_VERSION);
+	delete version;
 	
 	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
 	
@@ -249,6 +253,7 @@ public Action hookSetTransmitEntity(int entity, int client) {
 	for (int i = 0; i < sizeof(g_sOwner); i++) {
 		if (StrContains(className, g_sOwner[i]) != -1) {
 			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+			return (owner == client) ? Plugin_Continue : Plugin_Handled;
 		}
 	}
 	//Find owner of Engineer buildings.
@@ -262,8 +267,7 @@ public Action hookSetTransmitEntity(int entity, int client) {
 	//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.		
 	else if (StrContains(className, "vgui_screen") != -1 || StrContains(className, "sentryrocket") != -1) {
 		char className2[32];
-		building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		if (building < 0) {
+		if ((building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")) < 1) {
 			return Plugin_Continue;
 		}
 		GetEntityClassname(building, className2, sizeof(className2));
