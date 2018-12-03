@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <tf2_stocks>
 
-#define PLUGIN_VERSION  "0.2.5"
+#define PLUGIN_VERSION  "0.2.6"
 #define PLUGIN_DESCRIPTION "Adds commands to show/hide other players."
 
 // --------------------------------- Global Variables
@@ -20,19 +20,6 @@ int
 ConVar
 	  cvarExplosions;
 
-//Entities to hide.
-char g_sHideable[][] = {
-	"obj_sentrygun",
-	"obj_dispenser",
-	"obj_teleporter",
-	"vgui_screen",
-	"teamflag",
-	"projectile",
-	"weapon",
-	"wearable",
-	"tf_ammo_pack"
-};
-
 //Sounds to block.
 char g_sSoundHook[][] = {
 	"regenerate",
@@ -44,11 +31,19 @@ char g_sSoundHook[][] = {
 };
 
 //Entities to get m_hOwnerEntity net prop for
-char g_sOwner[][] = {
+char g_sOwnerList[][] = {
 	"weapon",
 	"wearable",
 	"projectile_rocket",
 	"projectile_energy_ball"
+};
+
+//Entities to hide.
+char g_sGeneralList[][] = {
+	"projectile",
+	"tf_ammo_pack",
+	// conc uses prop_physics
+	"prop_physics"
 };
 
 public Plugin myinfo = {
@@ -93,7 +88,7 @@ public void OnPluginStart() {
 		}
 		int ent = -1;
 		while((ent = FindEntityByClassname(ent, "item_teamflag")) != INVALID_ENT_REFERENCE) {
-			SDKHook(ent, SDKHook_SetTransmit, hookSetTransmitEntity);
+			SDKHook(ent, SDKHook_SetTransmit, hookSetTransmitIntel);
 		}
 	}
 }
@@ -109,20 +104,56 @@ public void OnClientDisconnect_Post(int client) {
 }
 
 public void OnEntityCreated(int entity, const char[] classname) {
+	if (StrContains(classname, "tf_projectile_pipe") != -1) {
+		SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitPipes);
+		return;
+	}
+
+	for (int i = 0; i < sizeof(g_sOwnerList); i++) {
+		if (StrContains(classname, g_sOwnerList[i]) != -1) {
+			SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitOwnerEntity);
+			return;
+		}
+	}
+
+	//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.		
+	if (StrContains(classname, "vgui_screen") != -1 || StrContains(classname, "sentryrocket") != -1) {
+		int building;
+		if ((building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")) < 1) {
+			return;
+		}
+		char className2[32];
+		GetEntityClassname(building, className2, sizeof(className2));
+		if (StrContains(className2, "obj_") != -1) {
+			SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitObjects);
+			return;
+		}
+	}
+
+	for (int i = 0; i < sizeof(g_sGeneralList); i++) {
+		if (StrContains(classname, g_sGeneralList[i]) != -1) {
+			SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitProjectiles);
+			return;
+		}
+	}
+
 	//Touch hook on Engineer buildings.
 	if (StrContains(classname, "obj_") == 0) {
 		SDKHook(entity, SDKHook_StartTouch, hookTouch);
 		SDKHook(entity, SDKHook_Touch, hookTouch);
+		SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitObjects);
+		return;
 	}
-	//Check g_sHideable list for entities to hide.
-	for (int i = 0; i < sizeof(g_sHideable); i++) {
-		if ((StrContains(classname, g_sHideable[i], false) != -1) && IsValidEntity(entity) && IsValidEdict(entity)) {
-			SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitEntity);
-		}
-	}
+
 	//Seperate hook for particles.
 	if (StrEqual(classname, "info_particle_system")) {
 		SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitParticle);
+		return;
+	}
+
+	if (StrEqual(classname, "teamflag")) {
+		SDKHook(entity, SDKHook_SetTransmit, hookSetTransmitIntel);
+		return;
 	}
 }
 
@@ -170,28 +201,85 @@ public Action hookSound(int clients[64], int& numClients, char sample[PLATFORM_M
 		}
 	}
 	
-	if (g_bHooked) {
-		int builder;
-		char className[32];
-
-		GetEntityClassname(entity, className, sizeof(className));
-		//Get ownership of sound for sentry rockets.
-		if (StrContains(className, "obj_") != -1) {
-			builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-		}
-		for (int i = 0; i < numClients; i++) {
-			if (g_bHide[clients[i]] && clients[i] != entity && clients[i] != builder && g_iTeam[clients[i]] != 1) {
-				//Remove the client from the array if they have hide toggled, if they are not the creator of the sound, and if they are not in spectate.
-				for (int j = i; j < numClients-1; j++) {
-					clients[j] = clients[j+1];
-				}
-				numClients--;
-				i--;
-			}
-		}
-		return (numClients > 0) ? Plugin_Changed : Plugin_Stop;
+	if (!g_bHooked) {
+		return Plugin_Continue;
 	}
+	
+	int builder;
+	char className[32];
+
+	GetEntityClassname(entity, className, sizeof(className));
+	//Get ownership of sound for sentry rockets.
+	if (StrContains(className, "obj_") != -1) {
+		builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+	}
+	for (int i = 0; i < numClients; i++) {
+		if (g_bHide[clients[i]] && clients[i] != entity && clients[i] != builder && g_iTeam[clients[i]] != 1) {
+			//Remove the client from the array if they have hide toggled, if they are not the creator of the sound, and if they are not in spectate.
+			for (int j = i; j < numClients-1; j++) {
+				clients[j] = clients[j+1];
+			}
+			numClients--;
+			i--;
+		}
+	}
+	return (numClients > 0) ? Plugin_Changed : Plugin_Stop;
+}
+
+public Action hookSetTransmitClient(int entity, int client) {
+	setFlags(entity);
+	//Transmit hook on player models.
+	if (entity == client || !g_bHide[client] || g_iTeam[client] == 1) {
+		return Plugin_Continue;
+	}
+	return Plugin_Handled;
+}
+
+public Action hookSetTransmitPipes(int entity, int client) {
+	if (!g_bHide[client] || g_iTeam[client] == 1) {
+		return Plugin_Continue;
+	}
+
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	return (owner == client) ? Plugin_Continue : Plugin_Handled;
+}
+
+public Action hookSetTransmitOwnerEntity(int entity, int client) {
+	setFlags(entity);
+	if (!g_bHide[client] || g_iTeam[client] == 1) {
+		return Plugin_Continue;
+	}
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	return (owner == client) ? Plugin_Continue : Plugin_Handled;
+}
+
+public Action hookSetTransmitObjects(int entity, int client) {
+	if (!g_bHide[client] || g_iTeam[client] == 1) {
+		return Plugin_Continue;
+	}
+
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+	return (owner == client) ? Plugin_Continue : Plugin_Handled;
+}
+
+public Action hookSetTransmitProjectiles(int entity, int client) {
+	if (!g_bHide[client] || g_iTeam[client] == 1) {
+		return Plugin_Continue;
+	}
+	return Plugin_Handled;
+}
+
+public Action hookSetTransmitParticle(int entity, int client) {
+	setFlags(entity);
 	return Plugin_Continue;
+}
+
+public Action hookSetTransmitIntel(int entity, int client) {
+	setFlags(entity);
+	if (!g_bHide[client] || g_iTeam[client] == 1) {
+		return Plugin_Continue;
+	}
+	return g_bIntelPickedUp ? Plugin_Handled : Plugin_Continue;
 }
 
 public Action hookTempEnt(const char[] te_name, const int[] players, int numClients, float delay) {
@@ -217,70 +305,6 @@ public Action hookTouch(int entity, int other) {
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
-}
-
-public Action hookSetTransmitParticle(int entity, int client) {
-	setFlags(entity);
-	return Plugin_Continue;
-}
-
-public Action hookSetTransmitClient(int entity, int client) {
-	setFlags(entity);
-	//Transmit hook on player models.
-	if (entity == client || !g_bHide[client] || g_iTeam[client] == 1) {
-		return Plugin_Continue;
-	}
-	return Plugin_Handled;
-}
-
-public Action hookSetTransmitEntity(int entity, int client) {
-	setFlags(entity);
-	if (!g_bHide[client] || g_iTeam[client] == 1) {
-		return Plugin_Continue;
-	}
-
-	int owner = -1;
-	int building = -1;
-	char className[32];
-	
-	GetEntityClassname(entity, className, sizeof(className));
-	
-	//Hide intel when picked up and the player carrying intel.
-	if (StrContains(className, "teamflag") != -1 && g_bHide[client]) {
-		return g_bIntelPickedUp ? Plugin_Handled : Plugin_Continue;
-	}
-	//Find owner of items within g_sOwner list.
-	for (int i = 0; i < sizeof(g_sOwner); i++) {
-		if (StrContains(className, g_sOwner[i]) != -1) {
-			owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-			return (owner == client) ? Plugin_Continue : Plugin_Handled;
-		}
-	}
-	//Find owner of Engineer buildings.
-	if (StrContains(className, "obj_") != -1) {
-		owner = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-	}
-	//Find owner of pipes and stickies
-	else if (StrContains(className, "tf_projectile_pipe") != -1) {
-		owner = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	}
-	//Find owner of vgui screen and sentry rockets, which will be the sentry or dispenser.		
-	else if (StrContains(className, "vgui_screen") != -1 || StrContains(className, "sentryrocket") != -1) {
-		char className2[32];
-		if ((building = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")) < 1) {
-			return Plugin_Continue;
-		}
-		GetEntityClassname(building, className2, sizeof(className2));
-		if (StrContains(className2, "obj_") != -1) {
-			owner = GetEntPropEnt(building, Prop_Send, "m_hBuilder");
-		}
-	}
-	
-	//Ownership check - prevents client from hiding their own entities, hide toggle check, and spectator check.
-	if (owner == client) {
-		return Plugin_Continue;
-	}
-	return Plugin_Handled;
 }
 
 // --------------------------------- Internal Functions
