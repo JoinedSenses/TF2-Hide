@@ -32,18 +32,18 @@ char g_sSoundHook[][] = {
 
 //Entities to get m_hOwnerEntity net prop for
 char g_sOwnerList[][] = {
+	"projectile_rocket",
+	"projectile_energy_ball",
 	"weapon",
 	"wearable",
-	"projectile_rocket",
-	"projectile_energy_ball"
+	// conc uses prop_physics
+	"prop_physics"
 };
 
 //Entities to hide.
 char g_sGeneralList[][] = {
 	"projectile",
-	"tf_ammo_pack",
-	// conc uses prop_physics
-	"prop_physics"
+	"tf_ammo_pack"
 };
 
 public Plugin myinfo = {
