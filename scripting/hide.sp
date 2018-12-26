@@ -60,7 +60,7 @@ public Plugin myinfo = {
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int errorMax) {
 	g_bLateLoad = late;
 	RegPluginLibrary("hide");
-	CreateNative("JA_IsClientHiding", Native_IsClientHiding);
+	CreateNative("Hide_IsClientHiding", Native_IsClientHiding);
 	return APLRes_Success;
 }
 

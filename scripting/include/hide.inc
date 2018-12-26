@@ -19,4 +19,4 @@ public SharedPlugin __pl_hide = {
  * @param client	Client index
  * @return			Bool value - Is client hiding other players?
  */
-native bool JA_IsClientHiding(int client);
+native bool Hide_IsClientHiding(int client);
