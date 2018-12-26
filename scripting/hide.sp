@@ -2,10 +2,11 @@
 #pragma semicolon 1
 
 #include <sourcemod>
+#include <hide>
 #include <sdkhooks>
 #include <tf2_stocks>
 
-#define PLUGIN_VERSION  "0.2.7"
+#define PLUGIN_VERSION  "0.2.8"
 #define PLUGIN_DESCRIPTION "Adds commands to show/hide other players."
 
 // --------------------------------- Global Variables
@@ -48,7 +49,7 @@ char g_sGeneralList[][] = {
 
 public Plugin myinfo = {
 	name = "Hide Players",
-	author = "[GNC] Matt, patched by JoinedSenses",
+	author = "[GNC] Matt, patched/maintained by JoinedSenses",
 	description = PLUGIN_DESCRIPTION,
 	version = PLUGIN_VERSION,
 	url = "http://github.com/JoinedSenses"
@@ -58,6 +59,8 @@ public Plugin myinfo = {
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int errorMax) {
 	g_bLateLoad = late;
+	RegPluginLibrary("hide");
+	CreateNative("JA_IsClientHiding", Native_IsClientHiding);
 	return APLRes_Success;
 }
 
@@ -157,6 +160,19 @@ public void OnEntityCreated(int entity, const char[] classname) {
 	}
 }
 
+// --------------------------------- Natives
+
+public int Native_IsClientHiding(Handle plugin, int numParams) {
+	int client = GetNativeCell(1);
+	if (client < 1 || client > MaxClients) {
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index (%d)", client);
+	}
+	if (!IsClientConnected(client)) {
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not connected", client);
+	}
+	return IsHiding(client);
+}
+
 // ---------------------------------  Events
 
 public Action eventChangeTeam(Event event, const char[] name, bool dontBroadcast) {
@@ -187,13 +203,13 @@ public Action eventIntel(Event event,  const char[] name, bool dontBroadcast) {
 public Action cmdHide(int client, int args) {
 	g_bHide[client] = !g_bHide[client];
 	g_bHooked = checkHooks();
-	PrintToChat(client, "\x05[Hide]\x01 Other players are now\x03 %s\x01.", g_bHide[client] ? "hidden" : "visible");
+	PrintToChat(client, "\x05[Hide]\x01 Other players are now\x03 %s\x01.", IsHiding(client) ? "hidden" : "visible");
 	return Plugin_Handled;
 }
 
 // --------------------------------- Hooks
 
-public Action hookSound(int clients[64], int& numClients, char sample[PLATFORM_MAX_PATH], int& entity, int& channel, float& volume, int& level, int& pitch, int& flags) {
+public Action hookSound(int clients[64], int &numClients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags) {
 	//Block sounds within g_sSoundHook list.
 	for (int i = 0; i <= sizeof(g_sSoundHook)-1; i++) {
 		if (StrContains(sample, g_sSoundHook[i], false) != -1) {
@@ -218,7 +234,7 @@ public Action hookSound(int clients[64], int& numClients, char sample[PLATFORM_M
 	}
 	for (int i = 0; i < numClients; i++) {
 		int client = clients[i];
-		if (g_bHide[client] && client != entity && client != owner && g_iTeam[client] != 1) {
+		if (IsHiding(client) && client != entity && client != owner && g_iTeam[client] != 1) {
 			//Remove the client from the array if they have hide toggled, if they are not the creator of the sound, and if they are not in spectate.
 			for (int j = i; j < numClients-1; j++) {
 				clients[j] = clients[j+1];
@@ -233,14 +249,14 @@ public Action hookSound(int clients[64], int& numClients, char sample[PLATFORM_M
 public Action hookSetTransmitClient(int entity, int client) {
 	setFlags(entity);
 	//Transmit hook on player models.
-	if (entity == client || !g_bHide[client] || g_iTeam[client] == 1) {
+	if (entity == client || !IsHiding(client) || g_iTeam[client] == 1) {
 		return Plugin_Continue;
 	}
 	return Plugin_Handled;
 }
 
 public Action hookSetTransmitPipes(int entity, int client) {
-	if (!g_bHide[client] || g_iTeam[client] == 1) {
+	if (!IsHiding(client) || g_iTeam[client] == 1) {
 		return Plugin_Continue;
 	}
 
@@ -250,7 +266,7 @@ public Action hookSetTransmitPipes(int entity, int client) {
 
 public Action hookSetTransmitOwnerEntity(int entity, int client) {
 	setFlags(entity);
-	if (!g_bHide[client] || g_iTeam[client] == 1) {
+	if (!IsHiding(client) || g_iTeam[client] == 1) {
 		return Plugin_Continue;
 	}
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
@@ -258,7 +274,7 @@ public Action hookSetTransmitOwnerEntity(int entity, int client) {
 }
 
 public Action hookSetTransmitObjects(int entity, int client) {
-	if (!g_bHide[client] || g_iTeam[client] == 1) {
+	if (!IsHiding(client) || g_iTeam[client] == 1) {
 		return Plugin_Continue;
 	}
 
@@ -267,7 +283,7 @@ public Action hookSetTransmitObjects(int entity, int client) {
 }
 
 public Action hookSetTransmitProjectiles(int entity, int client) {
-	if (!g_bHide[client] || g_iTeam[client] == 1) {
+	if (!IsHiding(client) || g_iTeam[client] == 1) {
 		return Plugin_Continue;
 	}
 	return Plugin_Handled;
@@ -280,7 +296,7 @@ public Action hookSetTransmitParticle(int entity, int client) {
 
 public Action hookSetTransmitIntel(int entity, int client) {
 	setFlags(entity);
-	if (!g_bHide[client] || g_iTeam[client] == 1) {
+	if (!IsHiding(client) || g_iTeam[client] == 1) {
 		return Plugin_Continue;
 	}
 	return g_bIntelPickedUp ? Plugin_Handled : Plugin_Continue;
@@ -305,7 +321,7 @@ public Action hookTempEnt(const char[] te_name, const int[] players, int numClie
 
 public Action hookTouch(int entity, int other) {
 	//If valid client and hide is toggled, prevent them from touching buildings
-	if (0 < other <= MaxClients && g_bHide[other]) {
+	if (0 < other <= MaxClients && IsHiding(other)) {
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -315,7 +331,7 @@ public Action hookTouch(int entity, int other) {
 
 bool checkHooks() {	
 	for (int i = 1; i <= MaxClients; i++) {
-		if (IsValidClient(i) && g_bHide[i]) {
+		if (IsValidClient(i) && IsHiding(i)) {
 			return true;
 		}
 	}
@@ -328,6 +344,10 @@ void setFlags(int edict) {
 	if (GetEdictFlags(edict) & FL_EDICT_ALWAYS) {
 		SetEdictFlags(edict, (GetEdictFlags(edict) & ~FL_EDICT_ALWAYS));
 	}
+}
+
+bool IsHiding(int client) {
+	return g_bHide[client];
 }
 
 bool IsValidClient(int client) {
