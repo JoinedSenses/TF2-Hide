@@ -65,11 +65,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int errorMa
 }
 
 public void OnPluginStart() {
-	ConVar version;
-	version = CreateConVar("sm_hide_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	CreateConVar("sm_hide_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY).SetString(PLUGIN_VERSION);
 	cvarExplosions = CreateConVar("sm_hide_explosions", "1", "Enable/Disable hiding explosions.", 0);
-	version.SetString(PLUGIN_VERSION);
-	delete version;
 	
 	RegConsoleCmd("sm_hide", cmdHide, "Show/Hide Other Players");
 	
