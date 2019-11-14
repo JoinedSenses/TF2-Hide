@@ -240,7 +240,8 @@ public Action hookSound(int clients[64], int &numClients, char sample[PLATFORM_M
 			i--;
 		}
 	}
-	return (numClients > 0) ? Plugin_Changed : Plugin_Stop;
+	
+	return numClients ? Plugin_Changed : Plugin_Stop;
 }
 
 public Action hookSetTransmitClient(int entity, int client) {
@@ -305,7 +306,8 @@ public Action hookTempEnt(const char[] te_name, const int[] players, int numClie
 		if (StrEqual(te_name, "TFExplosion") || StrEqual(te_name, "TFBlood")) {
 			return Plugin_Handled;
 		}
-		else if (StrContains(te_name, "ParticleEffect") != -1) {
+
+		if (StrContains(te_name, "ParticleEffect") != -1) {
 			switch (TE_ReadNum("m_iParticleSystemIndex")) {
 				case 1138, 1147, 1153, 1154: {
 					return Plugin_Handled;
