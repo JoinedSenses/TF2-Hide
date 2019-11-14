@@ -87,7 +87,7 @@ public void OnPluginStart() {
 			}
 		}
 		int ent = -1;
-		while((ent = FindEntityByClassname(ent, "item_teamflag")) != INVALID_ENT_REFERENCE) {
+		while((ent = FindEntityByClassname(ent, "item_teamflag")) != -1) {
 			SDKHook(ent, SDKHook_SetTransmit, hookSetTransmitIntel);
 		}
 	}
